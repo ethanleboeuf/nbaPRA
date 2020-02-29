@@ -1,7 +1,6 @@
 import espn_scraper as espn
 import csv
 import matplotlib.pyplot as plt
-import numpy
 
 def get_player_dict(csv_name):
     player_dict = dict()
@@ -21,11 +20,12 @@ def fill_player_dict(game_id, player_dict):
         play_text = play["text"].split()
         name = play_text[0] + " " + play_text[1]
         if name in player_dict:
-            # Rebounds!
-            if play_text[2] == "defensive" or play_text[2] == "offensive":
-                player_dict[name][0].append(1)
+            if len(play_text) > 3:
+                # Rebounds!
+                if play_text[3] == "rebound":
+                    player_dict[name][0].append(1)
 
-                player_dict[name][1].append(get_time(play))
+                    player_dict[name][1].append(get_time(play))
             if play["scoringPlay"]:
                 player_dict[name][0].append(play["scoreValue"])
                 player_dict[name][1].append(get_time(play))
