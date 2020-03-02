@@ -5,4 +5,5 @@ For now, just input the game ID into nba_test main function and the player name 
 ## TO RUN:
 Change the game id in main() 
   -change gid to the current game
+  
 Change player name you want from the game, and the team name to change team color
