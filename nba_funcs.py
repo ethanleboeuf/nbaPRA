@@ -2,7 +2,11 @@ import espn_scraper as espn
 import csv
 import matplotlib.pyplot as plt
 import os.path
+from matplotlib.offsetbox import AnnotationBbox
+from matplotlib import animation
+import numpy as np
 
+plt.rcParams.update({'font.size': 22})
 
 def get_player_dict(csv_name):
     player_dict = dict()
@@ -64,7 +68,31 @@ def get_time(play_dict):
     return time_for_log
 
 
-def plot_player(player_dict, name, target, teamColors, team):
+def plot_player(quarter_time, running_total, name, target, teamColor, image):
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_xticks([1, 2, 3, 4], minor=False)
+    ax.xaxis.grid(True, which='major')
+
+    plt.plot(quarter_time, running_total, color=teamColor, linewidth=2)
+    plt.hlines(target, 0, 4, colors='red', linewidth=2, linestyles='--')
+    plt.xlabel("Time, Quarters")
+    plt.ylabel("PRA Total")
+    plt.title("PRA Total for " + name)
+    plt.grid(axis='y')
+    plt.xlim([0, 4])
+    plt.ylim([0, max(running_total) + 5])
+    if image:
+        ab = AnnotationBbox(image, (quarter_time[-1], running_total[-1]), xycoords='data', frameon=False)
+        ax.add_artist(ab)
+    fig.savefig(name + ".png", format='png', dpi=1200)
+    ax.remove()
+    plt.clf()
+    plt.cla()
+    plt.close()
+
+
+def plot_player_both(player_dict, name, target, teamColor, image, flag):
     running_total = []
     total = 0
     quarter_time = []
@@ -73,19 +101,55 @@ def plot_player(player_dict, name, target, teamColors, team):
         running_total.append(total)
     for time in player_dict[name][1]:
         quarter_time.append(time/12)
-    fig, ax = plt.subplots()
-    ax.set_xticks([1, 2, 3, 4], minor=False)
-    ax.xaxis.grid(True, which='major')
+    if flag:
+        plot_player(quarter_time, running_total, name, target, teamColor, image)
+    else:
+        plot_animate(quarter_time, running_total, image, target, teamColor, name)
 
-    plt.plot(quarter_time, running_total, color=teamColors[team], linewidth=2)
-    plt.hlines(target, 0, 4, colors='red', linewidth=2)
+
+def plot_animate(clock, running_total, image, target, teamColor, name):
+    fig2 = plt.figure(figsize=(16, 9), dpi=240)
+    ax2 = plt.axes(xlim=(0, 4), ylim=(0, running_total[-1]+4))
+    ax2.set_xticks([1, 2, 3, 4], minor=False)
+    ax2.xaxis.grid(True, which='major')
+
+    ims = []
+    xdata, ydata = [], []
+    clock_smoothed = [0]
+    running_total_smoothed = [0]
+    plt.rcParams['animation.ffmpeg_path'] = './FFmpeg/bin/ffmpeg.exe'
+    for i in range(len(clock)):
+        if i == 0:
+            clock_smoothed.append(clock[i])
+            running_total_smoothed.append(running_total[i])
+        else:
+            dt_quart = clock[i] - clock[i-1]
+            ticks = int(round(dt_quart * 30))
+            clock_smoothed.extend(np.linspace(clock[i - 1], clock[i], ticks))
+            running_total_smoothed.extend(np.linspace(running_total[i - 1], running_total[i], ticks))
+
+    for i in range(len(clock_smoothed)):
+        xdata.append(clock_smoothed[i])
+        ydata.append(running_total_smoothed[i])
+
+        ln1, = plt.plot(xdata, ydata, color=teamColor, lw=2)
+        ab2 = AnnotationBbox(image, (clock_smoothed[i], running_total_smoothed[i]), xycoords='data', frameon=False)
+        if image:
+            ln2 = ax2.add_artist(ab2)
+            ims.append([ln1, ln2])
+        else:
+            ims.append([ln1])
+
     plt.xlabel("Time, Quarters")
     plt.ylabel("PRA Total")
     plt.title("PRA Total for " + name)
     plt.grid(axis='y')
     plt.xlim([0, 4])
     plt.ylim([0, max(running_total)])
-    plt.show()
+    plt.hlines(target, 0, 4, colors='red', linestyles="--")
+    anim = animation.ArtistAnimation(fig2, ims, interval=1, repeat=False, blit=True)
+    writer = animation.FFMpegWriter(fps=20, codec="libx264", bitrate=10000, extra_args=['-pix_fmt', 'yuv420p'], metadata=None)
+    anim.save(name + '.mp4', dpi=240, writer=writer)
 
 
 def write_player_dict_to_csv(player_dict, directory, filename):
@@ -116,3 +180,7 @@ def get_team_colors(team_data):
     for team in team_data:
         team_colors[team["team"]["shortDisplayName"]] = "#" + team["team"]["color"]
     return team_colors
+
+
+
+
