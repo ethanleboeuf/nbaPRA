@@ -11,15 +11,15 @@ def main():
     teamcolors = nba.get_team_colors(teams)
     player_dict = nba.get_player_dict("top300.csv")
 
-    gid = 401161537
+    gid = 401161546
 
     [player_dict, team_names] = nba.fill_player_dict(gid, player_dict)
-    image = plt.imread("player_images/giannis2.png")
+    image = plt.imread("Player Pics/Trevor Ariza.png")
     image = OffsetImage(image, zoom=0.35)
 
     flag = 0  # 0 means animation ONLY, change to 1 if you want a still image
-    target_num = 30
-    nba.plot_player_both(player_dict, "Giannis Antetokounmpo", target_num, teamcolors["Bucks"], image, flag)
+    target_num = 18.5
+    nba.plot_player_both(player_dict, "Trevor Ariza", target_num, teamcolors["Trail Blazers"], image, flag, gid)
 
     filename = str(gid) + "_" + team_names[0] + "vs" + team_names[1] + ".csv"
     nba.write_player_dict_to_csv(player_dict, "./data", filename)

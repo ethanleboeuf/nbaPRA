@@ -25,6 +25,10 @@ def fill_player_dict(game_id, player_dict):
 
     for play in data["gamepackageJSON"]["plays"]:
         play_text = play["text"].split()
+        if len(play_text) < 2:
+            continue
+
+
         name = play_text[0] + " " + play_text[1]
         if name in player_dict:
             if len(play_text) > 3:
@@ -92,7 +96,7 @@ def plot_player(quarter_time, running_total, name, target, teamColor, image):
     plt.close()
 
 
-def plot_player_both(player_dict, name, target, teamColor, image, flag):
+def plot_player_both(player_dict, name, target, teamColor, image, flag, gid):
     running_total = []
     total = 0
     quarter_time = []
@@ -104,12 +108,12 @@ def plot_player_both(player_dict, name, target, teamColor, image, flag):
     if flag:
         plot_player(quarter_time, running_total, name, target, teamColor, image)
     else:
-        plot_animate(quarter_time, running_total, image, target, teamColor, name)
+        plot_animate(quarter_time, running_total, image, target, teamColor, name, gid)
 
 
-def plot_animate(clock, running_total, image, target, teamColor, name):
+def plot_animate(clock, running_total, image, target, teamColor, name, gid):
     fig2 = plt.figure(figsize=(16, 9), dpi=240)
-    ax2 = plt.axes(xlim=(0, 4), ylim=(0, running_total[-1]+4))
+    ax2 = plt.axes(xlim=(0, 4), ylim=(0, running_total[-1]*1.5))
     ax2.set_xticks([1, 2, 3, 4], minor=False)
     ax2.xaxis.grid(True, which='major')
 
@@ -134,22 +138,26 @@ def plot_animate(clock, running_total, image, target, teamColor, name):
 
         ln1, = plt.plot(xdata, ydata, color=teamColor, lw=2)
         ab2 = AnnotationBbox(image, (clock_smoothed[i], running_total_smoothed[i]), xycoords='data', frameon=False)
+        ln3 = plt.hlines(target, 0, 4, colors='red', linestyles="--")
         if image:
             ln2 = ax2.add_artist(ab2)
-            ims.append([ln1, ln2])
+            ims.append([ln1, ln2, ln3])
         else:
-            ims.append([ln1])
-
+            ims.append([ln1, ln3])
+    for i in range(40):
+        ims.append(ims[-1])
     plt.xlabel("Time, Quarters")
     plt.ylabel("PRA Total")
     plt.title("PRA Total for " + name)
     plt.grid(axis='y')
-    plt.xlim([0, 4])
-    plt.ylim([0, max(running_total)])
-    plt.hlines(target, 0, 4, colors='red', linestyles="--")
+
     anim = animation.ArtistAnimation(fig2, ims, interval=1, repeat=False, blit=True)
     writer = animation.FFMpegWriter(fps=20, codec="libx264", bitrate=10000, extra_args=['-pix_fmt', 'yuv420p'], metadata=None)
-    anim.save(name + '.mp4', dpi=240, writer=writer)
+    filepath = "./data/" + name + "/"
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
+    fullpath = filepath +  name + "_" + str(gid) + '.mp4'
+    anim.save(fullpath, dpi=240, writer=writer)
 
 
 def write_player_dict_to_csv(player_dict, directory, filename):
