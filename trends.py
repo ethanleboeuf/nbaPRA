@@ -43,13 +43,22 @@ def player_bar_graph(n, pra, targets, name):
     x = []
     h = []
     lab = [" "]
+    over = "#069c47"
+    under = "#FF0000"
+    c = []
     for i in range(n):
         x.append(i+1)
-        h.append(pra[i] / targets[i])
+        val = pra[i] / targets[i]
+        h.append(val)
         lab.append(str(i) + " game(s) ago")
-
+        if val > 1:
+            c.append(over)
+        elif val < 1:
+            c.append(under)
+        else:
+            c.append("#000000")
     fig, ax = plt.subplots(figsize=(10, 10))
-    plt.bar(x, h, 0.5)
+    plt.bar(x, h, 0.5, color=c)
     plt.xlim([n+1, 0])
     plt.ylim([0, max(h)*2])
     locs, labels = plt.xticks()
