@@ -9,17 +9,20 @@ def main():
     data = overall_team_json._series
     teams = data["sports"][0]["leagues"][0]["teams"]
     teamcolors = nba.get_team_colors(teams)
+    teamcolors["Jazz"] = "#002b5c"
     player_dict = nba.get_player_dict("top300.csv")
 
-    gid = 401161546
+    gid = 401161511
+    player_name = "Dejounte Murray"
+    flag = 2  # 0 means animation ONLY, change to 1 if you want a still image, 2 for just txt file
+    target_num = 25.5
+    # line_color = teamcolors["Spurs"]
+    line_color = "#069c47"
 
     [player_dict, team_names] = nba.fill_player_dict(gid, player_dict)
-    image = plt.imread("Player Pics/Trevor Ariza.png")
+    image = plt.imread("Player Pics/" + player_name + ".png")
     image = OffsetImage(image, zoom=0.35)
-
-    flag = 0  # 0 means animation ONLY, change to 1 if you want a still image
-    target_num = 18.5
-    nba.plot_player_both(player_dict, "Trevor Ariza", target_num, teamcolors["Trail Blazers"], image, flag, gid)
+    nba.process_player(player_dict, player_name, target_num, line_color, image, flag, gid)
 
     filename = str(gid) + "_" + team_names[0] + "vs" + team_names[1] + ".csv"
     nba.write_player_dict_to_csv(player_dict, "./data", filename)

@@ -6,7 +6,15 @@ from matplotlib.offsetbox import AnnotationBbox
 from matplotlib import animation
 import numpy as np
 
+plt.rcParams['grid.color'] = '#000000'
 plt.rcParams.update({'font.size': 22})
+COLOR = '#069c47'
+plt.rcParams['text.color'] = COLOR
+plt.rcParams['axes.labelcolor'] = COLOR
+plt.rcParams['xtick.color'] = COLOR
+plt.rcParams['ytick.color'] = COLOR
+plt.rcParams['figure.facecolor'] = '#000000'
+plt.rcParams['animation.ffmpeg_path'] = './FFmpeg/bin/ffmpeg.exe'
 
 def get_player_dict(csv_name):
     player_dict = dict()
@@ -27,7 +35,6 @@ def fill_player_dict(game_id, player_dict):
         play_text = play["text"].split()
         if len(play_text) < 2:
             continue
-
 
         name = play_text[0] + " " + play_text[1]
         if name in player_dict:
@@ -72,66 +79,72 @@ def get_time(play_dict):
     return time_for_log
 
 
-def plot_player(quarter_time, running_total, name, target, teamColor, image):
+def plot_player(clock_smoothed, running_total_smoothed, name, target, teamColor, image, gid):
 
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xticks([1, 2, 3, 4], minor=False)
     ax.xaxis.grid(True, which='major')
 
-    plt.plot(quarter_time, running_total, color=teamColor, linewidth=2)
+    plt.plot(clock_smoothed, running_total_smoothed, color=teamColor, linewidth=2)
     plt.hlines(target, 0, 4, colors='red', linewidth=2, linestyles='--')
     plt.xlabel("Time, Quarters")
     plt.ylabel("PRA Total")
     plt.title("PRA Total for " + name)
     plt.grid(axis='y')
     plt.xlim([0, 4])
-    plt.ylim([0, max(running_total) + 5])
+    plt.ylim([0, max(running_total_smoothed) + 5])
     if image:
-        ab = AnnotationBbox(image, (quarter_time[-1], running_total[-1]), xycoords='data', frameon=False)
+        if running_total_smoothed[-1] >= target:
+            ab = AnnotationBbox(image, (clock_smoothed[-1], running_total_smoothed[-1] * (1.25)),
+                                 xycoords='data', frameon=False)
+
+        else:
+            ab = AnnotationBbox(image, (clock_smoothed[-1], running_total_smoothed[-1] * (0.75)),
+                                 xycoords='data', frameon=False)
         ax.add_artist(ab)
-    fig.savefig(name + ".png", format='png', dpi=1200)
+    filepath = "./data/" + name + "/"
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
+    fullpath = filepath +  name + "_" + str(gid) + '.png'
+    fig.savefig(fullpath, format='png', dpi=1200, facecolor=fig.get_facecolor())
     ax.remove()
     plt.clf()
     plt.cla()
     plt.close()
 
 
-def plot_player_both(player_dict, name, target, teamColor, image, flag, gid):
+def process_player(player_dict, name, target, teamColor, image, flag, gid):
     running_total = []
     total = 0
     quarter_time = []
+    prev_total = 0
     for pra in player_dict[name][0]:
         total = pra + total
+        running_total.append(prev_total)
         running_total.append(total)
+        prev_total = total
     for time in player_dict[name][1]:
         quarter_time.append(time/12)
-    if flag:
-        plot_player(quarter_time, running_total, name, target, teamColor, image)
-    else:
-        plot_animate(quarter_time, running_total, image, target, teamColor, name, gid)
+        quarter_time.append(time/12)
+
+    clock_smoothed, running_total_smoothed = smooth_data(quarter_time, running_total)
+    if flag == 1:
+        plot_player(clock_smoothed, running_total_smoothed, name, target, teamColor, image, gid)
+    elif flag == 0:
+        plot_animate(clock_smoothed, running_total_smoothed, image, target, teamColor, name, gid)
+    write_ind_to_txt(running_total[-1], target, name, gid)
 
 
-def plot_animate(clock, running_total, image, target, teamColor, name, gid):
+def plot_animate(clock_smoothed, running_total_smoothed, image, target, teamColor, name, gid):
     fig2 = plt.figure(figsize=(16, 9), dpi=240)
-    ax2 = plt.axes(xlim=(0, 4), ylim=(0, running_total[-1]*1.5))
+    ax2 = plt.axes(xlim=(0, 4), ylim=(0, running_total_smoothed[-1]*1.5))
     ax2.set_xticks([1, 2, 3, 4], minor=False)
     ax2.xaxis.grid(True, which='major')
-
     ims = []
     xdata, ydata = [], []
-    clock_smoothed = [0]
-    running_total_smoothed = [0]
-    plt.rcParams['animation.ffmpeg_path'] = './FFmpeg/bin/ffmpeg.exe'
-    for i in range(len(clock)):
-        if i == 0:
-            clock_smoothed.append(clock[i])
-            running_total_smoothed.append(running_total[i])
-        else:
-            dt_quart = clock[i] - clock[i-1]
-            ticks = int(round(dt_quart * 30))
-            clock_smoothed.extend(np.linspace(clock[i - 1], clock[i], ticks))
-            running_total_smoothed.extend(np.linspace(running_total[i - 1], running_total[i], ticks))
-
+    ln1 = []
+    ln2 = []
+    ln3 = []
     for i in range(len(clock_smoothed)):
         xdata.append(clock_smoothed[i])
         ydata.append(running_total_smoothed[i])
@@ -145,19 +158,32 @@ def plot_animate(clock, running_total, image, target, teamColor, name, gid):
         else:
             ims.append([ln1, ln3])
     for i in range(40):
+        if image:
+            if running_total_smoothed[-1] >= target:
+                ab2 = AnnotationBbox(image, (clock_smoothed[-1], running_total_smoothed[-1] * (1 + 0.25/(40-i))), xycoords='data', frameon=False)
+
+            else:
+                ab2 = AnnotationBbox(image, (clock_smoothed[-1], running_total_smoothed[-1] * (1 - 0.25/(40-i))), xycoords='data', frameon=False)
+
+            ln2 = ax2.add_artist(ab2)
+            ims.append([ln1, ln2, ln3])
+        else:
+            ims.append(ims[-1])
+    for i in range(40):
         ims.append(ims[-1])
+
     plt.xlabel("Time, Quarters")
     plt.ylabel("PRA Total")
     plt.title("PRA Total for " + name)
     plt.grid(axis='y')
-
+    fig2.patch.set_facecolor('black')
     anim = animation.ArtistAnimation(fig2, ims, interval=1, repeat=False, blit=True)
     writer = animation.FFMpegWriter(fps=20, codec="libx264", bitrate=10000, extra_args=['-pix_fmt', 'yuv420p'], metadata=None)
     filepath = "./data/" + name + "/"
     if not os.path.exists(filepath):
         os.makedirs(filepath)
     fullpath = filepath +  name + "_" + str(gid) + '.mp4'
-    anim.save(fullpath, dpi=240, writer=writer)
+    anim.save(fullpath, dpi=240, writer=writer, savefig_kwargs={'facecolor':'black'})
 
 
 def write_player_dict_to_csv(player_dict, directory, filename):
@@ -188,6 +214,30 @@ def get_team_colors(team_data):
     for team in team_data:
         team_colors[team["team"]["shortDisplayName"]] = "#" + team["team"]["color"]
     return team_colors
+
+
+def smooth_data(clock, running_total):
+    clock_smoothed = [0]
+    running_total_smoothed = [0]
+    for i in range(len(clock)):
+        if i == 0:
+            clock_smoothed.append(clock[i])
+            running_total_smoothed.append(running_total[i])
+        else:
+            dt_quart = clock[i] - clock[i-1]
+            ticks = max(int(round(dt_quart * 30)), 2)
+            clock_smoothed.extend(np.linspace(clock[i - 1], clock[i], ticks))
+            running_total_smoothed.extend(np.linspace(running_total[i - 1], running_total[i], ticks))
+    return clock_smoothed, running_total_smoothed
+
+
+def write_ind_to_txt(pra, target, name, gid):
+    filepath = "./data/" + name + "/"
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
+    file1 = open(filepath + name + "_" + str(gid) + ".txt", "w")
+    file1.write(str(pra) + "," + str(target))
+    file1.close()
 
 
 
