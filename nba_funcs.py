@@ -28,7 +28,6 @@ def get_player_dict(csv_name):
 
 def fill_player_dict(game_id, player_dict):
     url = espn.get_game_url("playbyplay", "nba", game_id)
-    print(url)
     data = espn.get_url(url)
     team_names = [data["gamepackageJSON"]["boxscore"]["teams"][0]["team"]["shortDisplayName"], data["gamepackageJSON"]["boxscore"]["teams"][1]["team"]["shortDisplayName"]]
 
