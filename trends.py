@@ -68,7 +68,7 @@ def player_bar_graph(n, pra, targets, name):
     ab = AnnotationBbox(image, (1.5, 3), xycoords='data', frameon=False)
     ax.add_artist(ab)
     plt.title("Last " + str(n) + " game(s) for " + name)
-    plt.ylabel("Assists / Target Value")
+    plt.ylabel("PRA / Target Value")
     plt.xlabel("Games Ago")
 
     filepath = "./data/" + name + "/"
