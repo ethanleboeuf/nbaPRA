@@ -28,6 +28,7 @@ def get_player_dict(csv_name):
 
 def fill_player_dict(game_id, player_dict):
     url = espn.get_game_url("playbyplay", "nba", game_id)
+    print(url)
     data = espn.get_url(url)
     team_names = [data["gamepackageJSON"]["boxscore"]["teams"][0]["team"]["shortDisplayName"], data["gamepackageJSON"]["boxscore"]["teams"][1]["team"]["shortDisplayName"]]
 
@@ -48,7 +49,7 @@ def fill_player_dict(game_id, player_dict):
                 # Scoring play!
                 player_dict[name][0].append(play["scoreValue"])
                 player_dict[name][1].append(get_time(play))
-        # Assists!
+        #Assists!
         if play_text[-1] == "assists)":
             name_assist = play_text[-3][1:] + " " + play_text[-2]
             if name_assist in player_dict:
@@ -66,9 +67,14 @@ def get_time(play_dict):
     if ":" in time:
         min_sec = time.split(":")
         min_frac = float(min_sec[0]) + float(min_sec[1]) / 60
+        if quarter == "O":
+            quarter = 5
+
         time_for_log = (float(quarter) - 1) * 12 + (12.0 - min_frac)
     else:
         min_frac = float(time)
+        if quarter == "O":
+            quarter = 5
         time_for_log = (float(quarter) - 1) * 12 + (12.0 - min_frac/60)
 
     if time_for_log < 0:
@@ -97,7 +103,6 @@ def plot_player(clock_smoothed, running_total_smoothed, name, target, teamColor,
         if running_total_smoothed[-1] >= target:
             ab = AnnotationBbox(image, (clock_smoothed[-1], running_total_smoothed[-1] * (1.25)),
                                  xycoords='data', frameon=False)
-
         else:
             ab = AnnotationBbox(image, (clock_smoothed[-1], running_total_smoothed[-1] * (0.75)),
                                  xycoords='data', frameon=False)

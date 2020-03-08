@@ -50,24 +50,26 @@ def player_bar_graph(n, pra, targets, name):
         x.append(i+1)
         val = pra[i] / targets[i]
         h.append(val)
-        lab.append(str(i) + " game(s) ago")
+        lab.append(str(i))
         if val > 1:
             c.append(over)
         elif val < 1:
             c.append(under)
         else:
             c.append("#000000")
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(n+5, 10))
     plt.bar(x, h, 0.5, color=c)
     plt.xlim([n+1, 0])
-    plt.ylim([0, max(h)*2])
+    # plt.ylim([0, max(3.5, max(h)*2)])
+    plt.ylim([0, 5])
     locs, labels = plt.xticks()
     plt.xticks(np.arange(len(lab)), lab, fontsize=16)
     plt.hlines(1, 0, n+1, color="red", linestyles="--", linewidth=2)
-    ab = AnnotationBbox(image, (n+0.5, 1.5), xycoords='data', frameon=False)
+    ab = AnnotationBbox(image, (1.5, 3), xycoords='data', frameon=False)
     ax.add_artist(ab)
     plt.title("Last " + str(n) + " game(s) for " + name)
-    plt.ylabel("PRA / Target Value")
+    plt.ylabel("Assists / Target Value")
+    plt.xlabel("Games Ago")
 
     filepath = "./data/" + name + "/"
     if not os.path.exists(filepath):

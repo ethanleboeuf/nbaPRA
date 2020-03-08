@@ -2,8 +2,8 @@ import trends
 
 
 def main():
-    n = 3
-    name = "Dejounte Murray"
+    n = 9
+    name = "Aaron Gordon"
     pra, targets, n = trends.get_last_n_games(n, name)
     trends.player_bar_graph(n, pra, targets, name)
 
